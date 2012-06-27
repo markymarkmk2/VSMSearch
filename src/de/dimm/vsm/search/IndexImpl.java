@@ -20,7 +20,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Filter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MultiSearcher;
@@ -180,6 +179,7 @@ public class IndexImpl implements IndexApi
 
         reader = IndexReader.open(dir, /*rd_only*/ true);
 
+        LogManager.msg(LogManager.LVL_DEBUG, LogManager.TYP_INDEX, "Opening IndexWriter " + writer.toString());
 
         return true;
     }
@@ -198,7 +198,10 @@ public class IndexImpl implements IndexApi
         try
         {
             if (writer != null)
-            writer.close(true);
+            {
+                LogManager.msg(LogManager.LVL_DEBUG, LogManager.TYP_INDEX, "Closing IndexWriter " + writer.toString());
+                writer.close(true);
+            }
         }
         catch (Exception iOException)
         {
@@ -225,6 +228,9 @@ public class IndexImpl implements IndexApi
     @Override
     public boolean writeDocument( Document d ) throws CorruptIndexException, IOException
     {
+        if (writer == null)
+            throw new IOException("Writer is closed");
+
         writer.addDocument(d);
         return true;
     }
@@ -233,6 +239,9 @@ public class IndexImpl implements IndexApi
     @Override
     public void updateDocument( Document doc,Query qry ) throws CorruptIndexException, IOException
     {
+        if (writer == null)
+            throw new IOException("Writer is closed");
+
         writer.deleteDocuments(qry);
        /* writer.expungeDeletes();
         writer.commit();*/
@@ -243,6 +252,9 @@ public class IndexImpl implements IndexApi
     @Override
     public void removeDocument( Query qry ) throws CorruptIndexException, IOException
     {
+        if (writer == null)
+            throw new IOException("Writer is closed");
+
         writer.deleteDocuments(qry);
     }
 
@@ -301,7 +313,7 @@ public class IndexImpl implements IndexApi
             long diff = System.currentTimeMillis() - start_time;
             ScoreDoc[] sdocs = tdocs.scoreDocs;
 
-            LogManager.msg_index(LogManager.LVL_DEBUG, "Suche dauerte " + diff + "ms, " + sdocs.length + " Ergebnisse gefunden");
+            //LogManager.msg_index(LogManager.LVL_DEBUG, "Suche dauerte " + diff + "ms, " + sdocs.length + " Ergebnisse gefunden");
 
             for (int k = sdocs.length - 1 ; k >= 0; k--)
             {
@@ -396,6 +408,9 @@ public class IndexImpl implements IndexApi
     @Override
     public void flush( boolean and_optimize ) throws IOException
     {
+        if (writer == null)
+            throw new IOException("Writer is closed");
+
         if (!isOpen())
         {
             check_free_space();
