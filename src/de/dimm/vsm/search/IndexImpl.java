@@ -59,6 +59,7 @@ public class IndexImpl implements IndexApi
     public IndexImpl( File path )
     {
         indexPath = path;
+        next_flush_optimize_ts = System.currentTimeMillis() + FLUSH_OPTIMIZE_CYCLE_MS;
     }
 
     public void setMinFreeSpace( long minFreeSpace )
@@ -190,7 +191,7 @@ public class IndexImpl implements IndexApi
         if (!isOpen())
            return false;
 
-        flush(true);
+        flush(false);
 
         reader.close();
         reader = null;
